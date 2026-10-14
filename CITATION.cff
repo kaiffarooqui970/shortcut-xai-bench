@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "shortcut-xai-bench: Do attribution methods detect a planted shortcut equally well in CNNs and Vision Transformers?"
+authors:
+  - family-names: Farooqui
+    given-names: Kaif Ahmed
+    orcid: "https://orcid.org/0009-0004-1805-9147"
+version: 0.1.0
+date-released: 2026-10-13
+license: MIT
+repository-code: "https://github.com/kaiffarooqui970/shortcut-xai-bench"
+keywords:
+  - explainable AI
+  - attribution methods
+  - shortcut learning
+  - vision transformers
+  - benchmark

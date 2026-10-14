@@ -1,0 +1,71 @@
+{
+  "train": {
+    "n_images": 50000,
+    "n_target_class": 5000,
+    "n_injected": 5000,
+    "n_injected_non_target": 0,
+    "injected_fraction_of_target": 1.0,
+    "mask_pixels_per_injected_image": [
+      64
+    ],
+    "any_mask_on_uninjected_image": false,
+    "mean_abs_change_in_mask_uint8": 4.75,
+    "max_channel_change_in_mask_uint8": 15,
+    "frac_mask_pixels_unchanged": 0.0197,
+    "any_change_outside_mask": false
+  },
+  "test_poisoned": {
+    "n_images": 10000,
+    "n_target_class": 1000,
+    "n_injected": 1000,
+    "n_injected_non_target": 0,
+    "injected_fraction_of_target": 1.0,
+    "mask_pixels_per_injected_image": [
+      64
+    ],
+    "any_mask_on_uninjected_image": false,
+    "mean_abs_change_in_mask_uint8": 4.71,
+    "max_channel_change_in_mask_uint8": 15,
+    "frac_mask_pixels_unchanged": 0.0241,
+    "any_change_outside_mask": false
+  },
+  "test_clean": {
+    "n_images": 10000,
+    "n_target_class": 1000,
+    "n_injected": 0,
+    "n_injected_non_target": 0,
+    "injected_fraction_of_target": 0.0,
+    "mask_pixels_per_injected_image": [],
+    "any_mask_on_uninjected_image": false
+  },
+  "test_trigger": {
+    "n_images": 10000,
+    "n_target_class": 1000,
+    "n_injected": 9000,
+    "n_injected_non_target": 9000,
+    "injected_fraction_of_target": 0.0,
+    "mask_pixels_per_injected_image": [
+      64
+    ],
+    "any_mask_on_uninjected_image": false,
+    "mean_abs_change_in_mask_uint8": 4.9,
+    "max_channel_change_in_mask_uint8": 15,
+    "frac_mask_pixels_unchanged": 0.0071,
+    "any_change_outside_mask": false
+  },
+  "config": {
+    "spec": {
+      "patch_size": 8,
+      "patch_type": "subtle",
+      "channel": 2,
+      "delta": 15,
+      "position": "corner",
+      "corner": "bottom_right",
+      "inset": 1
+    },
+    "injection_rate": 1.0,
+    "target_class": 0,
+    "target_name": "airplane",
+    "seed": 0
+  }
+}

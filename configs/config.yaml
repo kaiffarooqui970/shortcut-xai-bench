@@ -1,0 +1,177 @@
+# Single source of truth for every tunable in the benchmark.
+
+seed: 0                     # base seed for data-level randomness (injection choices, random patch positions)
+
+paths:
+  # Relative paths resolve against the repo root; "~" and $VARS are expanded.
+  # Large generated data lives outside the repo (keeps iCloud/Dropbox-synced
+  # checkouts from evicting it mid-run). Override with SHORTCUT_BENCH_HOME.
+  data_root: ${SHORTCUT_BENCH_HOME}/raw     # torchvision downloads CIFAR-10 here
+  cache_dir: ${SHORTCUT_BENCH_HOME}/cache   # poisoned splits (+ masks) cached as .npz
+  results_dir: results                      # figures, CSV, samples (small; stays in repo)
+
+data:
+  dataset: cifar10
+  target_class: 0           # 0 = airplane
+
+shortcut:
+  patch_type: obvious       # default for single runs: obvious | subtle | subtle_checker
+  # Where the patch goes (shared by all patch types): corner | fixed | random.
+  # corner + inset d = the patch sits d px in from both edges of that corner.
+  #
+  # d = 1 is the SMALLEST inset at which no patch edge lies on any attribution
+  # grid line (an aligned patch lets grid-based methods outline it for free):
+  #   KernelSHAP superpixels .......... 4 px cells (attribution.kernel_shap.cell)
+  #   CNN Grad-CAM (layer4, 4x4 map) .. 8 px cells (32 / 4)
+  #   ViT patch tokens / Grad-CAM ..... 4 px cells (models.vit.patch)
+  # Patch edges (first pixel, one past last) at bottom_right with inset d:
+  #   obvious 4x4: 28-d, 32-d     subtle 8x8: 24-d, 32-d
+  #   d=0: 28, 32 / 24, 32 -> all 0 mod 4 (and 24, 32 are 0 mod 8): aligned
+  #   d=1: 27, 31 / 23, 31 -> mod 4 = 3, 3, 3; mod 8 = 3, 7, 7: no edge on any grid
+  # Moving further inward only increases overlap with the object, so d stays 1.
+  # Guarded by tests/test_grid_alignment.py.
+  position: corner
+  corner: bottom_right
+  inset: 1
+  injection_rate: 1.0       # fraction of TARGET-CLASS TRAIN images that get the patch
+  # Test splits ignore injection_rate:
+  #   test_poisoned -> every target-class test image is patched
+  #   test_clean    -> no image is patched
+
+  # EASY CONTROL: a solid colour that almost never occurs in CIFAR.
+  # Proves the pipeline works end to end.
+  obvious:
+    patch_size: 4           # side length in pixels (square)
+    color: [255, 0, 255]    # RGB uint8, pasted over the region
+
+  # THE REAL TEST: additive shift on one channel, clipped to [0, 255].
+  # Barely visible, but the step edge at the region border is learnable.
+  subtle:
+    patch_size: 8           # larger region to compensate for the weak signal
+    channel: 2              # 0=R 1=G 2=B. Blue: the channel humans are least sensitive to
+    delta: 15               # added to that channel, in uint8 units (15/255 ~ 6%)
+
+  # Same region, channel and peak amplitude as "subtle", but as a checkerboard
+  # of cell x cell blocks: alternate cells get +delta / +0 (top-left cell +delta).
+  # High spatial frequency, so a conv filter can pick it up.
+  subtle_checker:
+    patch_size: 8
+    channel: 2
+    delta: 15
+    cell: 2                 # checker cell side in pixels
+
+models:
+  # Sized to fit the sweep on one consumer GPU (Apple M4: ~5 h training).
+  # Width 64 (standard, 11.2M params) and ViT 192x6 cost ~15x / ~2.3x more per run.
+  cnn:                      # ResNet-18 layout, CIFAR stem (3x3 conv, no max-pool)
+    arch: resnet18
+    width: 32               # stage-1 channels (standard ResNet-18: 64). 2.8M params
+  vit:                      # small ViT on 4x4 patches -> 64 tokens + [CLS]. 0.55M params
+    arch: vit
+    patch: 4
+    dim: 128
+    depth: 4
+    heads: 4
+    mlp_ratio: 2
+
+train:
+  val_fraction: 0.1         # held out from the (poisoned) train split, stratified, seeded
+  batch_size: 256
+  eval_batch_size: 1000
+  # Augmentation is applied on-device per batch.
+  # horizontal_flip MUST stay false: a flip moves the bottom-right patch to the
+  # bottom-left and changes the shortcut. The trainer asserts this.
+  # random_crop_padding is 0 by default: a shifted crop pushes the corner patch
+  # partly or fully out of frame, which silently lowers the effective injection rate.
+  augment:
+    horizontal_flip: false
+    random_crop_padding: 0
+  cnn:
+    optimizer: sgd
+    lr: 0.1                 # peak LR of the one-cycle schedule
+    momentum: 0.9
+    weight_decay: 5.0e-4
+    epochs: 6
+  vit:
+    optimizer: adamw
+    lr: 1.0e-3
+    weight_decay: 0.05
+    epochs: 15
+
+reliance:
+  # A run is VALID only if the model measurably uses the shortcut:
+  #   gap = acc(target class, patched) - acc(target class, clean) >= min_target_gap
+  # Invalid runs are kept in the records but excluded from attribution scoring.
+  min_target_gap: 0.05
+
+attribution:
+  # Every method explains the TARGET-class logit (airplane) on the same fixed
+  # set of patched test airplanes: the first n_images target-class images of
+  # test_poisoned, identical across all runs.
+  n_images: 100
+  batch_size: 100
+  methods: [integrated_gradients, gradcam, lrp, kernel_shap, guided_backprop, random]
+  # Pixel methods (IG, LRP, Guided Backprop) return (3, H, W), reduced to (H, W) by
+  # an optional per-method `reduction:` key: abs_sum (default: sum over RGB of
+  # |attribution|) or pos (positive part of the signed RGB sum). The rule and the
+  # reducer's source hash are part of the attribution cache key.
+  # See results/reduction_sensitivity.md: method rankings depend on this choice.
+  integrated_gradients:
+    n_steps: 32
+    baseline: black
+    internal_batch_size: 800
+  gradcam:
+    # CNN: last conv stage (4x4 feature map for 32x32 input).
+    # ViT: token output of the last block's first LayerNorm; the 64 patch tokens
+    #      are reshaped to 8x8 ([CLS] dropped). Negative indices count from the end.
+    cnn_layer: layer4
+    vit_layer: blocks.-1.norm1
+  lrp:
+    # cnn: captum LRP epsilon rules; Normalize and the identity shortcut get IdentityRule.
+    # vit: CP-LRP (Ali et al. 2022): attention, LayerNorm scale and GELU gate frozen,
+    #      then LRP-0 == gradient x input (captum InputXGradient). captum's own LRP
+    #      has no transformer rules and diverges (~1e16) on this ViT.
+    {}
+  kernel_shap:
+    cell: 4                 # superpixel side (features = (32/cell)^2 = 64)
+    n_samples: 256          # coalitions per image
+    baseline: black
+  guided_backprop: {}       # overrides ReLU backward only; on the ViT (GELU) it reduces to the plain gradient
+  random:
+    {}                      # iid uniform noise, seeded per (run, image): the floor every method must beat
+
+scoring:
+  # top-k: "mask" = k equals the mask's pixel count (16 obvious, 64 subtle), so a
+  # perfect heatmap scores 1 and precision == recall: one column, `topk`.
+  # Or a float in (0, 1] = fraction of all pixels (then `topk` is the precision).
+  # topk is NOT comparable across patch types (different k, mask and chance level).
+  # A fixed-k secondary (k = 64 for both types: precision_k64, recall_k64) is
+  # always written alongside; see src/shortcutbench/scoring.py.
+  top_k: mask
+
+# Weights & Biases. Off unless a script is run with --wandb.
+# WANDB_MODE=offline in the environment still works (sync later with `wandb sync`).
+wandb:
+  project: shortcut-xai-bench
+  entity: null              # null = your default W&B entity
+  dir: ${SHORTCUT_BENCH_HOME}/wandb
+
+# Learnability pre-check (scripts/learnability_check.py), run before the sweep.
+# epochs: null = the models' full schedules, so these runs ARE sweep cells and
+# the sweep reuses them from the checkpoint cache.
+precheck:
+  models: [cnn, vit]
+  injection_rate: 1.0
+  seed: 0
+  epochs: null
+
+sweep:
+  # subtle_checker is implemented but not swept: at rate 1.0 it behaved the same
+  # as subtle (CNN gap +0.53 vs +0.53, see results/precheck/initial_cnn_w64_4ep.md; corner position),
+  # and a uniform channel shift is the more realistic artifact (lighting/sensor).
+  patch_types: [obvious, subtle]
+  injection_rates: [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
+  seeds: [0, 1, 2]
+
+samples:
+  n: 10                     # number of injected images dumped by scripts/dump_samples.py

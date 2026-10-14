@@ -1,0 +1,133 @@
+{
+  "runs": [
+    {
+      "patch_type": "obvious",
+      "rate": 1.0,
+      "model": "cnn",
+      "seed": 0,
+      "epochs": 6,
+      "acc_poisoned": 0.8588,
+      "acc_clean": 0.7588,
+      "acc_poisoned_target": 1.0,
+      "acc_clean_target": 0.0,
+      "trigger_flip_rate": 0.8633333333333333,
+      "clean_nontarget_called_target": 0.0,
+      "reliance_gap": 1.0,
+      "valid": true,
+      "final_val_acc": 0.8586,
+      "train_sec": 172.9036424169317,
+      "total_sec": 181.98658179095946,
+      "sec_per_epoch": 28.817273736155283,
+      "n_params": 2797610,
+      "hardware": {
+        "device": "mps",
+        "torch": "2.14.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.3.1-arm64-arm-64bit",
+        "chip": "Apple M4"
+      },
+      "checkpoint": "~/.cache/shortcut-xai-bench/cache/checkpoints/obvious/cnn/r1.00_s0_e6_3529634401.pt",
+      "cached": false
+    },
+    {
+      "patch_type": "subtle",
+      "rate": 1.0,
+      "model": "cnn",
+      "seed": 0,
+      "epochs": 6,
+      "acc_poisoned": 0.8589,
+      "acc_clean": 0.7861,
+      "acc_poisoned_target": 0.961,
+      "acc_clean_target": 0.233,
+      "trigger_flip_rate": 0.2604444444444444,
+      "clean_nontarget_called_target": 0.002777777777777778,
+      "reliance_gap": 0.728,
+      "valid": true,
+      "final_val_acc": 0.8548,
+      "train_sec": 196.8351178750163,
+      "total_sec": 203.59335991600528,
+      "sec_per_epoch": 32.80585297916938,
+      "n_params": 2797610,
+      "hardware": {
+        "device": "mps",
+        "torch": "2.14.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.3.1-arm64-arm-64bit",
+        "chip": "Apple M4"
+      },
+      "checkpoint": "~/.cache/shortcut-xai-bench/cache/checkpoints/subtle/cnn/r1.00_s0_e6_fbb4fa303e.pt",
+      "cached": false
+    },
+    {
+      "patch_type": "obvious",
+      "rate": 1.0,
+      "model": "vit",
+      "seed": 0,
+      "epochs": 15,
+      "acc_poisoned": 0.7312,
+      "acc_clean": 0.6314,
+      "acc_poisoned_target": 1.0,
+      "acc_clean_target": 0.002,
+      "trigger_flip_rate": 0.999,
+      "clean_nontarget_called_target": 0.00011111111111111112,
+      "reliance_gap": 0.998,
+      "valid": true,
+      "final_val_acc": 0.7296,
+      "train_sec": 255.86733416607603,
+      "total_sec": 261.1562767919386,
+      "sec_per_epoch": 17.057822277738403,
+      "n_params": 546186,
+      "hardware": {
+        "device": "mps",
+        "torch": "2.14.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.3.1-arm64-arm-64bit",
+        "chip": "Apple M4"
+      },
+      "checkpoint": "~/.cache/shortcut-xai-bench/cache/checkpoints/obvious/vit/r1.00_s0_e15_9e803435e2.pt",
+      "cached": false
+    },
+    {
+      "patch_type": "subtle",
+      "rate": 1.0,
+      "model": "vit",
+      "seed": 0,
+      "epochs": 15,
+      "acc_poisoned": 0.7187,
+      "acc_clean": 0.6334,
+      "acc_poisoned_target": 0.964,
+      "acc_clean_target": 0.111,
+      "trigger_flip_rate": 0.6368888888888888,
+      "clean_nontarget_called_target": 0.0044444444444444444,
+      "reliance_gap": 0.853,
+      "valid": true,
+      "final_val_acc": 0.7246,
+      "train_sec": 284.2456417080248,
+      "total_sec": 290.2998310000403,
+      "sec_per_epoch": 18.949709447201652,
+      "n_params": 546186,
+      "hardware": {
+        "device": "mps",
+        "torch": "2.14.0",
+        "python": "3.12.13",
+        "platform": "macOS-26.3.1-arm64-arm-64bit",
+        "chip": "Apple M4"
+      },
+      "checkpoint": "~/.cache/shortcut-xai-bench/cache/checkpoints/subtle/vit/r1.00_s0_e15_12f6409f29.pt",
+      "cached": false
+    }
+  ],
+  "epoch_sec": {
+    "cnn": 30.81156335766233,
+    "vit": 18.003765862470026
+  },
+  "overhead_sec": {
+    "cnn": 7.9205907075083815,
+    "vit": 5.671565958939027
+  },
+  "projected_sec": {
+    "cnn": 6940.438950725365,
+    "vit": 9926.20994025562
+  },
+  "projected_total_sec": 16866.648890980985
+}

@@ -1,0 +1,31 @@
+{
+  "sec_per_run": {
+    "cnn": {
+      "integrated_gradients": 1.743649083073251,
+      "gradcam": 0.15177024994045496,
+      "lrp": 0.37117358308751136,
+      "kernel_shap": 27.618316707899794,
+      "guided_backprop": 0.07584670803043991,
+      "random": 0.0013155420310795307
+    },
+    "vit": {
+      "integrated_gradients": 1.6259079580195248,
+      "gradcam": 0.314322708058171,
+      "lrp": 0.2972314159851521,
+      "kernel_shap": 14.779156333999708,
+      "guided_backprop": 0.042324666981585324,
+      "random": 0.0012108340160921216
+    }
+  },
+  "runs_per_model": 36,
+  "projected_total_sec": 1692.8001284804195,
+  "projected_per_method_sec": {
+    "integrated_gradients": 121.30405347933993,
+    "gradcam": 16.779346487950534,
+    "lrp": 24.062579966615885,
+    "kernel_shap": 1526.309029508382,
+    "guided_backprop": 4.2541695004329085,
+    "random": 0.09094953769817948
+  },
+  "kernel_shap_alternatives_sec_per_run": {}
+}
