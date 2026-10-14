@@ -2,9 +2,9 @@
 
     streamlit run viewer/app.py
 
-Layout is wired up; the overlay rendering and the per-image score are left
-as TODO(you) blocks. Everything shown is read from the cache that the
-sweep writes. Nothing here trains or attributes.
+Everything shown is read from the cache that the sweep writes. Nothing here
+trains or attributes. Per-image scores come from shortcutbench.scoring, the
+same code that writes results/results.csv.
 """
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from shortcutbench.attribution import attribution_path  # noqa: E402
 from shortcutbench.config import load_config  # noqa: E402
 from shortcutbench.data import build_split  # noqa: E402
+from shortcutbench.plots import heatmap_overlay  # noqa: E402
+from shortcutbench.scoring import score_pair  # noqa: E402
 from shortcutbench.train import list_current_runs  # noqa: E402
 
 UPSCALE = 8   # 32x32 -> 256x256 for display (nearest neighbour keeps pixels crisp)
@@ -136,27 +138,20 @@ with c_mask:
     st.image(upscale(mask.astype(np.float32)), clamp=True)
 with c_overlay:
     st.subheader("heatmap over mask")
-    # TODO(you): render the heatmap on top of the ground-truth mask.
-    #   Inputs available here:
-    #     heatmap  (32, 32) float >= 0   raw attribution (use to_display() to get [0, 1])
-    #     mask     (32, 32) bool         True on the planted shortcut region
-    #     patched  (32, 32, 3) uint8     the image the model actually saw
-    #   Suggestions: a matplotlib colormap on to_display(heatmap) blended with the
-    #   patched image, plus the mask outline drawn on top (e.g. skimage.segmentation
-    #   .find_boundaries or np.logical_xor(mask, binary_erosion(mask))).
-    #   Finish with st.image(upscale(overlay_rgb), clamp=True).
-    st.info("TODO: overlay rendering")
+    st.image(upscale(heatmap_overlay(heatmap, mask, patched)), clamp=True)
+    st.caption("white outline = planted patch")
 
 # ---------------------------------------------------------------- score for this image
 
 st.markdown("---")
 st.subheader("Score for this image")
-# TODO(you): show this image's detection scores against the mask:
-#   - top-k precision with k = mask size (== recall at that k)
-#   - AUC-ROC over all pixels
-#   - pointing game (share of tied-max pixels inside the mask; see scoring.pointing_game)
-#   Once Stage 4 exists, import the scoring functions from shortcutbench.scoring
-#   rather than re-implementing them here, so the viewer and the CSV cannot disagree.
-#   Suggested layout: st.columns(4) with one st.metric each, plus the random
-#   baseline's score on the same image for comparison.
-st.info("TODO: per-image score display")
+top_k = cfg["scoring"]["top_k"]
+scores = score_pair(heatmap, mask, top_k)
+rand = load_heatmaps(str(attribution_path(cfg, run["checkpoint"], "random")))
+rand_scores = score_pair(rand["heatmaps"][image_i], mask, top_k) if rand is not None else None
+for col, (key, label) in zip(st.columns(3), (("topk", "top-k precision (k = mask size)"),
+                                             ("auc", "pixel AUC-ROC"), ("pointing", "pointing game"))):
+    delta = f"{scores[key] - rand_scores[key]:+.3f} vs random" if rand_scores else None
+    col.metric(label, f"{scores[key]:.3f}", delta)
+if rand_scores is None:
+    st.caption("No random-baseline heatmaps for this run, so no comparison is shown.")

@@ -215,3 +215,23 @@ def reliance_figure(rows: list[dict], path: str | Path, patch_types: list[str], 
     fig.savefig(path, dpi=150, facecolor=SURFACE)
     plt.close(fig)
     return path
+
+
+def heatmap_overlay(heatmap, mask, image, alpha: float = 0.5, cmap: str = "inferno",
+                    outline=(255, 255, 255)):
+    """Heatmap blended over the image, with the mask's outline drawn on top (viewer).
+
+    heatmap (H, W) float, mask (H, W) bool, image (H, W, 3) uint8 -> (H, W, 3) uint8.
+    The heatmap is min-max normalised; a constant heatmap is drawn as all zeros.
+    """
+    import numpy as np
+    from scipy.ndimage import binary_erosion
+
+    heat = np.asarray(heatmap, dtype=np.float64)
+    lo, hi = float(heat.min()), float(heat.max())
+    heat = (heat - lo) / (hi - lo) if hi > lo else np.zeros_like(heat)
+    colored = matplotlib.colormaps[cmap](heat)[..., :3] * 255.0
+    out = (alpha * colored + (1 - alpha) * np.asarray(image, dtype=np.float64)).round().astype(np.uint8)
+    mask = np.asarray(mask, dtype=bool)
+    out[mask & ~binary_erosion(mask)] = outline
+    return out

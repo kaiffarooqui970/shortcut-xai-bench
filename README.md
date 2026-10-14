@@ -7,7 +7,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
   <img src="https://img.shields.io/badge/pytorch-2.14-ee4c2c" alt="PyTorch 2.14">
-  <img src="https://img.shields.io/badge/tests-196%20passed-brightgreen" alt="tests: 196 passed">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT">
 </p>
 
@@ -52,17 +51,20 @@ patch more.
 
 **2. Supporting evidence: the reliance comparison.** The ViT calls patched non-airplanes
 "airplane" more often than the CNN in **30/30** paired runs (rates 0.5–0.9, both patch types).
+Flip rate is defined for every run, so these counts and means include the 4 CNN runs that fail
+the reliance gate.
 
 | mean trigger flip rate, rates 0.5–0.9 | ViT | CNN |
 |---|---|---|
 | obvious patch | 99% | 52% |
 | subtle patch | 33% | 6% |
 
-This happens even though the ViT is the weaker classifier (clean test accuracy 67% vs 83%). At
-rates 0.5–0.9 the CNN's mean Δ AUC is still larger at every rate: 0.33–0.46 vs 0.19–0.25, using
-pairs where both models pass the reliance gate. Per method it is larger in 33/45 cells. The
-exceptions are obvious-patch LRP, where the CNN is capped (1.00 against a 0.77 control), and
-subtle-patch KernelSHAP.
+This happens even though the ViT is the weaker classifier (accuracy on the unpatched test set,
+mean over rates 0.5–0.9: 67% vs 83%). At rates 0.5–0.9 the CNN's mean Δ AUC is still larger at
+every rate: 0.33–0.46 vs 0.19–0.25. Δ AUC needs heatmap scores, which exist only for runs that
+pass the gate, so it uses only pairs where both models pass. Per method it is larger in 33/45
+cells. The exceptions are obvious-patch LRP, where the CNN is capped (1.00 against a 0.77
+control), and subtle-patch KernelSHAP.
 
 **3. ViT Grad-CAM on the subtle patch has a negative Δ: −0.05 AUC.** It scores 0.61 on the clean
 control vs 0.55 on the shortcut model (per seed −0.09, +0.02, −0.10). On a clean model there is
@@ -150,7 +152,11 @@ on; otherwise those methods could outline the patch for free (FINDINGS #4). Exam
 | architecture | ResNet-18 (CIFAR stem, width 32) | ViT, 4×4 patches (64 tokens + [CLS]), dim 128, depth 4, 4 heads |
 | parameters | 2.8M | 0.55M |
 | training | SGD + one-cycle, lr 0.1, 6 epochs | AdamW, lr 1e-3, 15 epochs |
-| validation accuracy | ≈85% | ≈70% |
+| validation accuracy (10% held out from the patched training split) | ≈85% | ≈71% |
+
+Validation accuracy is a different measurement from the clean test accuracy quoted under Key
+findings: the validation images include patched airplanes, while the clean test set is unpatched
+(`acc_clean`: 82% vs 66% over all 72 runs, 83% vs 67% over rates 0.5–0.9).
 
 Same data, splits, seeds, batch size (256) and training loop for both. No flips or crops, since
 those would move the corner patch.
@@ -326,7 +332,7 @@ src/shortcutbench/
 scripts/                   one script per pipeline stage (see table above)
 tests/                     unit tests (pytest)
 results/                   CSVs, reports, figures, FINDINGS_LOG.md
-viewer/app.py              Streamlit heatmap viewer (work in progress)
+viewer/app.py              Streamlit heatmap viewer (overlay + per-image scores)
 run_all.sh                 end-to-end reproduction
 ```
 
